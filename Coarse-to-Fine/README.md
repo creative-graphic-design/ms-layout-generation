@@ -10,11 +10,19 @@ Code: [GitHub](https://github.com/microsoft/LayoutGeneration/tree/main/Coarse-to
 ![](./assets/model.png)
 
 ## Preparation
-Please follow __Installation__ and __Dataset__ in [this instruction](https://github.com/microsoft/LayoutGeneration/blob/main/LayoutFormer%2B%2B/README.md) to clone the repository, create environment and prepare the datasets.
+Please follow __Installation__ and __Dataset__ in [this instruction](https://github.com/microsoft/LayoutGeneration/blob/main/LayoutFormer%2B%2B/README.md) to clone the repository and prepare the datasets.
 
-Then move `LayoutGeneration/Coarse-to-Fine/coarse2fine` to `LayoutGeneration/LayoutFormer++/src/`.
+From the repository root, set up the workspace with `uv`:
 
-    cp -r LayoutGeneration/Coarse-to-Fine/coarse2fine LayoutGeneration/LayoutFormer++/src/
+```bash
+uv sync
+```
+
+If you need CUDA-enabled PyTorch, install it explicitly, for example:
+
+```bash
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
 
 ## Inference
 Download checkpoints from [Huggingface](https://huggingface.co/jzy124/Coarse2Fine/tree/main).
@@ -30,30 +38,30 @@ Download checkpoints from [Huggingface](https://huggingface.co/jzy124/Coarse2Fin
         ├── datasets
         ├── ckpts
         ├── src
-            ├── coarse2fine
+            ├── layoutformer_pp
             ├── ...
         ├── README.md
         ├── ...
 
-Then, run
-
-    cd LayoutGeneration/LayoutFormer++/src/
-    pip install -e .
+Note: `layoutformer_pp` lives under `LayoutFormer++/src/` and is installed as a workspace dependency.
 
 For testing on RICO, run
 
-    CUDA_VISIBLE_DEVICES=0 ./coarse2fine/coarse2fine_rico.sh test ../datasets/ ../ckpts/rico/ basic 1
+    cd LayoutGeneration/Coarse-to-Fine
+    CUDA_VISIBLE_DEVICES=0 ./src/coarse_to_fine/coarse2fine_rico.sh test ../LayoutFormer++/datasets/ ../LayoutFormer++/ckpts/rico/ basic 1
 
 For testing on PubLayNet, run
 
-    CUDA_VISIBLE_DEVICES=0 ./coarse2fine/coarse2fine_pln.sh test ../datasets/ ../ckpts/publaynet/ basic 1
+    cd LayoutGeneration/Coarse-to-Fine
+    CUDA_VISIBLE_DEVICES=0 ./src/coarse_to_fine/coarse2fine_pln.sh test ../LayoutFormer++/datasets/ ../LayoutFormer++/ckpts/publaynet/ basic 1
 
 
 ## Training
 
 Take training on RICO dataset as example:
 
-    ./coarse2fine/coarse2fine_rico.sh train ../datasets/ {OUTPUT_DIR} {TRAINER} {GPU_NUMBER}
+    cd LayoutGeneration/Coarse-to-Fine
+    ./src/coarse_to_fine/coarse2fine_rico.sh train ../LayoutFormer++/datasets/ {OUTPUT_DIR} {TRAINER} {GPU_NUMBER}
 
 
 ## Citation
@@ -71,4 +79,3 @@ If this work helps your research, please cite:
         month   = {Jun.}, 
         pages   = {1096-1103} 
     }
-

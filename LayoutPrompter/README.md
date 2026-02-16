@@ -27,26 +27,22 @@ Below are the qualitative results.
 
 ## Installation
 
-1. Clone this repository
+From the repository root, set up the workspace with `uv`:
 
-```
-git clone https://github.com/microsoft/LayoutGeneration.git
-cd LayoutGeneration/LayoutPrompter
-```
-
-2. Create a conda environment
-
-```
-conda create -n layoutprompter python=3.8
-conda activate layoutprompter
+```bash
+uv sync
 ```
 
-3. Install PyTorch and other dependencies
+If CLIP fails to build due to `pkg_resources`, re-run with no build isolation:
 
+```bash
+uv add --no-build-isolation ./LayoutPrompter
 ```
-conda install pytorch=1.13.1 torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install -r requirements.txt
-pip install -e src/
+
+If you need CUDA-enabled PyTorch, install it explicitly, for example:
+
+```bash
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
 ## Datasets

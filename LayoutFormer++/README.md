@@ -12,21 +12,17 @@ Video: [YouTube](https://youtu.be/TBdo0XwMoxE)
 ![](./assets/layoutformer.png)
 
 ## Installation
-1. Clone this repository
+From the repository root, set up the workspace with `uv`:
 
-        git clone https://github.com/microsoft/LayoutGeneration.git
-        cd LayoutGeneration/LayoutFormer++
+```bash
+uv sync
+```
 
-2. Create a conda environment 
+If you need CUDA-enabled PyTorch, install it explicitly, for example:
 
-        conda create -n layoutformer python=3.8
-        conda activate layoutformer
-
-3. Install [PyTorch](https://pytorch.org/).
-
-4. Install other dependencies:
-
-        pip install -r requirements.txt
+```bash
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
 
 ## Dataset
 You can
@@ -56,38 +52,36 @@ First, download pre-trained model checkpoints and the pre-processed datasets fro
 
 Then, run
 
-    cd src
-    pip install -e .
+    cd LayoutGeneration/LayoutFormer++
     export CUDA_VISIBLE_DEVICES=0
 
 Finally, use the following commands to conduct inference tasks for different layout generation tasks on the two datasets.
 
 |  Dataset      |  Task       | Commands                                                                             |
 |  ----         |  ----       | ----                                                                                 |
-|   RICO        |  Gen-T      | ./scripts/rico_gen_t.sh test ../datasets ../ckpts/rico_gen_t basic 1 final           |
-|   RICO        |  Gen-TS     | ./scripts/rico_gen_ts.sh test ../datasets ../ckpts/rico_gen_ts basic 1 final         |
-|   RICO        |  Gen-R      | ./scripts/rico_gen_r.sh test ../datasets ../ckpts/rico_gen_r basic 1 final           |
-|   RICO        |  Refinement | ./scripts/rico_refinement.sh test ../datasets ../ckpts/rico_refinement basic 1 final |
-|   RICO        |  Completion | ./scripts/rico_completion.sh test ../datasets ../ckpts/rico_completion basic 1 final |
-|   RICO        |  UGen       | ./scripts/rico_ugen.sh test ../datasets ../ckpts/rico_ugen basic 1 final             |
+|   RICO        |  Gen-T      | ./src/layoutformer_pp/scripts/rico_gen_t.sh test ./datasets ./ckpts/rico_gen_t basic 1 final           |
+|   RICO        |  Gen-TS     | ./src/layoutformer_pp/scripts/rico_gen_ts.sh test ./datasets ./ckpts/rico_gen_ts basic 1 final         |
+|   RICO        |  Gen-R      | ./src/layoutformer_pp/scripts/rico_gen_r.sh test ./datasets ./ckpts/rico_gen_r basic 1 final           |
+|   RICO        |  Refinement | ./src/layoutformer_pp/scripts/rico_refinement.sh test ./datasets ./ckpts/rico_refinement basic 1 final |
+|   RICO        |  Completion | ./src/layoutformer_pp/scripts/rico_completion.sh test ./datasets ./ckpts/rico_completion basic 1 final |
+|   RICO        |  UGen       | ./src/layoutformer_pp/scripts/rico_ugen.sh test ./datasets ./ckpts/rico_ugen basic 1 final             |
 
 |  Dataset      |  Task       | Commands                                                                                        |
 |  ----         |  ----       | ----                                                                                            |
-|   PubLayNet   |  Gen-T      | ./scripts/publaynet_gen_t.sh test ../datasets ../ckpts/publaynet_gen_t basic 1 final            |
-|   PubLayNet   |  Gen-TS     | ./scripts/publaynet_gen_ts.sh test ../datasets ../ckpts/publaynet_gen_ts basic 1 final          |
-|   PubLayNet   |  Gen-R      | ./scripts/publaynet_gen_r.sh test ../datasets ../ckpts/publaynet_gen_r basic 1 final            |
-|   PubLayNet   |  Refinement | ./scripts/publaynet_refinement.sh test ../datasets ../ckpts/publaynet_refinement/ basic 1 final |
-|   PubLayNet   |  Completion | ./scripts/publaynet_completion.sh test ../datasets ../ckpts/publaynet_completion basic 1 final  |
-|   PubLayNet   |  UGen       | ./scripts/publaynet_ugen.sh test ../datasets ../ckpts/publaynet_ugen basic 1 final              |
+|   PubLayNet   |  Gen-T      | ./src/layoutformer_pp/scripts/publaynet_gen_t.sh test ./datasets ./ckpts/publaynet_gen_t basic 1 final            |
+|   PubLayNet   |  Gen-TS     | ./src/layoutformer_pp/scripts/publaynet_gen_ts.sh test ./datasets ./ckpts/publaynet_gen_ts basic 1 final          |
+|   PubLayNet   |  Gen-R      | ./src/layoutformer_pp/scripts/publaynet_gen_r.sh test ./datasets ./ckpts/publaynet_gen_r basic 1 final            |
+|   PubLayNet   |  Refinement | ./src/layoutformer_pp/scripts/publaynet_refinement.sh test ./datasets ./ckpts/publaynet_refinement/ basic 1 final |
+|   PubLayNet   |  Completion | ./src/layoutformer_pp/scripts/publaynet_completion.sh test ./datasets ./ckpts/publaynet_completion basic 1 final  |
+|   PubLayNet   |  UGen       | ./src/layoutformer_pp/scripts/publaynet_ugen.sh test ./datasets ./ckpts/publaynet_ugen basic 1 final              |
 
 ## Training
 
-You can easily train __LayoutFormer++__ with the scripts in `./scr/scripts/`.
+You can easily train __LayoutFormer++__ with the scripts in `./src/layoutformer_pp/scripts/`.
 Take training for Gen-T on RICO as example, use the command:
-    
-    cd src
-    pip install -e .
-    ./scripts/rico_gen_t.sh train ../datasets {OUTPUT_DIR} {TRAINER} {GPU_NUMBER} none
+
+    cd LayoutGeneration/LayoutFormer++
+    ./src/layoutformer_pp/scripts/rico_gen_t.sh train ./datasets {OUTPUT_DIR} {TRAINER} {GPU_NUMBER} none
 
 ## Citation
 If this code helps your research, please cite:
