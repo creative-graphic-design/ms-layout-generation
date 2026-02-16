@@ -16,8 +16,6 @@ From the repository root, set up the workspace with `uv`:
 
 ```bash
 uv sync
-uv add ./LayoutFormer++
-uv add ./Coarse-to-Fine
 ```
 
 If you need CUDA-enabled PyTorch, install it explicitly, for example:
@@ -44,6 +42,8 @@ Download checkpoints from [Huggingface](https://huggingface.co/jzy124/Coarse2Fin
             ├── ...
         ├── README.md
         ├── ...
+
+Note: `layoutformer_pp` lives under `LayoutFormer++/src/` and is installed as a workspace dependency.
 
 For testing on RICO, run
 

@@ -11,7 +11,6 @@ From the repository root, set up the workspace with `uv`:
 
 ```bash
 uv sync
-uv add ./Parse-Then-Place
 ```
 
 If you need CUDA-enabled PyTorch, install it explicitly, for example:

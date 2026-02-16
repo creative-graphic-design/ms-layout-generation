@@ -31,7 +31,6 @@ From the repository root, set up the workspace with `uv`:
 
 ```bash
 uv sync
-uv add ./LayoutPrompter
 ```
 
 If CLIP fails to build due to `pkg_resources`, re-run with no build isolation:

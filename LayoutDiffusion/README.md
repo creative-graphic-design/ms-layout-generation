@@ -25,7 +25,6 @@ To get started, use `uv` from the repository root:
 
 ```bash
 uv sync
-uv add ./LayoutDiffusion
 uv add --package improved-diffusion ./LayoutDiffusion/improved-diffusion
 uv add --package transformers ./LayoutDiffusion/transformers
 uv add --package layout-eval ./LayoutDiffusion/eval_src
