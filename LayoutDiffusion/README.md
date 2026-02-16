@@ -21,17 +21,25 @@ Please refer to the [paper](https://arxiv.org/pdf/2303.11589.pdf) for more resul
 ## Getting Started
 ### Setting Up the Environment
 
-To get started, create a new conda environment and install the required packages with the following commands:
+To get started, use `uv` from the repository root:
 
 ```bash
-  conda create -n laydi python=3.9
-  conda activate laydi
-  conda install mpi4py
-  conda install pytorch=1.12.1 torchvision torchaudio cudatoolkit=11.3 -c pytorch
-  pip install -r requirements.txt
-  pip install -e improved-diffusion/
-  pip install -e transformers/
-  pip install -e eval_src/
+uv sync
+uv add --package improved-diffusion ./LayoutDiffusion/improved-diffusion
+uv add --package transformers ./LayoutDiffusion/transformers
+uv add --package layout-eval ./LayoutDiffusion/eval_src
+```
+
+If you need CUDA-enabled PyTorch, install it explicitly, for example:
+
+```bash
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+If you use `mpiexec`, install `mpi4py` in your environment:
+
+```bash
+uv add mpi4py
 ```
 
 ### Preparing the Data and Pretrained Models
@@ -124,10 +132,10 @@ Note: If {multistep} is set to True, the layout generation process will be recor
 To measure the performance of the generated layouts, please use the following commands:
 
 ```bash
-python json2metrics.py {path_to_generated_layouts}
+python -m layout_diffusion.json2metrics {path_to_generated_layouts}
 
 # e.g.
-python json2metrics.py ./results/generation_outputs/rico/ungen/rico.ema_0.9999_175000.pt.samples_-1.0_elem1.json
+python -m layout_diffusion.json2metrics ./results/generation_outputs/rico/ungen/rico.ema_0.9999_175000.pt.samples_-1.0_elem1.json
 ```
 
 To generate images, use the command printed by the previous script. For example:
