@@ -1,0 +1,22 @@
+[build-system]
+requires = ["uv-build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"
+
+[project]
+name = "layoutformer-pp"
+version = "0.0.1"
+description = "LayoutFormer++: Conditional Graphic Layout Generation via Constraint Serialization and Decoding Space Restriction"
+requires-python = ">=3.9,<3.11"
+dependencies = [
+  "deepspeed==0.5.10",
+  "numpy",
+  "pycocotools==2.0.11",
+  "pytorch-fid==0.2.1",
+  "seaborn==0.11.2",
+  "torch",
+  "torchaudio",
+  "torchvision",
+  "tqdm",
+  "transformers==4.19.4",
+  "wandb",
+]

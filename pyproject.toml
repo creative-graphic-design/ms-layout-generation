@@ -1,0 +1,34 @@
+[project]
+name = "layoutgeneration-workspace"
+version = "0.0.0"
+requires-python = ">=3.9,<3.11"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+  "Coarse-to-Fine",
+  "LayoutDiffusion",
+  "LayoutFormer++",
+  "LayoutPrompter",
+  "Parse-Then-Place",
+]
+
+[tool.uv.sources]
+coarse-to-fine = { workspace = true }
+layout-diffusion = { workspace = true }
+layoutformer-pp = { workspace = true }
+layoutprompter = { workspace = true }
+parse-then-place = { workspace = true }
+
+[tool.uv.extra-build-dependencies]
+clip = ["setuptools<81"]
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "pre-commit",
+    "pytest",
+    "ruff",
+    "ty",
+    "vulture",
+]

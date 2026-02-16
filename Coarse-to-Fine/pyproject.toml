@@ -1,0 +1,18 @@
+[build-system]
+requires = ["uv-build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"
+
+[project]
+name = "coarse-to-fine"
+version = "0.0.1"
+description = "Coarse-to-Fine Generative Modeling for Graphic Layouts"
+requires-python = ">=3.9,<3.11"
+dependencies = [
+  "deepspeed==0.5.10",
+  "layoutformer-pp",
+  "numpy",
+  "torch",
+  "torchaudio",
+  "torchvision",
+  "wandb",
+]

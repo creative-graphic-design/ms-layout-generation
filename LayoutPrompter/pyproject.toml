@@ -1,0 +1,26 @@
+[build-system]
+requires = ["uv-build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"
+
+[project]
+name = "layoutprompter"
+version = "0.0.1"
+description = "LayoutPrompter"
+requires-python = ">=3.9,<3.11"
+dependencies = [
+  "clip",
+  "numpy",
+  "openai",
+  "opencv_contrib_python",
+  "opencv_python",
+  "pandas",
+  "scipy",
+  "seaborn",
+  "setuptools<81",
+  "torch",
+  "torchaudio",
+  "torchvision",
+]
+
+[tool.uv.sources]
+clip = { git = "https://github.com/openai/CLIP.git" }
