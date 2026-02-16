@@ -1,0 +1,15 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.2
+    hooks:
+      - id: ruff
+      - id: ruff-format
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.14
+    hooks:
+      - id: vulture
+        args: ["--min-confidence", "80", "."]
+  - repo: https://github.com/pre-commit/mirrors-pytest
+    rev: v8.3.5
+    hooks:
+      - id: pytest
