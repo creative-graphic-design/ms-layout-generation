@@ -96,28 +96,22 @@ def pythonpath_env(repo_root: Path) -> dict[str, str]:
 
 @pytest.fixture(scope="session")
 def gpu_available() -> bool:
-    try:
-        import torch
+    import torch
 
-        return torch.cuda.is_available()
-    except ImportError:
-        return False
+    return torch.cuda.is_available()
 
 
 @pytest.fixture(scope="session")
 def gpu_count() -> int:
-    try:
-        import torch
+    import torch
 
-        return torch.cuda.device_count() if torch.cuda.is_available() else 0
-    except ImportError:
-        return 0
+    return torch.cuda.device_count() if torch.cuda.is_available() else 0
 
 
 @pytest.fixture
 def gpu_device(gpu_available: bool):
     if not gpu_available:
-        pytest.skip("GPU not available")
+        raise RuntimeError("GPU not available")
     import torch
 
     return torch.device("cuda:0")
@@ -128,7 +122,7 @@ def single_gpu_env(
     pythonpath_env: dict[str, str], gpu_available: bool
 ) -> dict[str, str]:
     if not gpu_available:
-        pytest.skip("GPU not available")
+        raise RuntimeError("GPU not available")
     env = pythonpath_env.copy()
     env["CUDA_VISIBLE_DEVICES"] = "0"
     return env
@@ -137,7 +131,7 @@ def single_gpu_env(
 @pytest.fixture
 def multi_gpu_env(pythonpath_env: dict[str, str], gpu_count: int) -> dict[str, str]:
     if gpu_count < 2:
-        pytest.skip(f"Multi-GPU not available (found {gpu_count} GPUs)")
+        raise RuntimeError(f"Multi-GPU not available (found {gpu_count} GPUs)")
     env = pythonpath_env.copy()
     env["CUDA_VISIBLE_DEVICES"] = "0,1"
     return env
@@ -152,26 +146,20 @@ def seed_everything():
     random.seed(seed)
     np.random.seed(seed)
 
-    try:
-        import torch
+    import torch
 
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
-            torch.backends.cudnn.deterministic = True
-            torch.backends.cudnn.benchmark = False
-    except ImportError:
-        pass
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
     yield
 
-    try:
-        import torch
+    import torch
 
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    except ImportError:
-        pass
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 @pytest.fixture
