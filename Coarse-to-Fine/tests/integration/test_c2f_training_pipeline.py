@@ -60,38 +60,24 @@ class TestC2FTrainingPipeline:
             ]
 
             # Run training
-            try:
-                result = subprocess.run(
-                    cmd,
-                    env=single_gpu_env,
-                    capture_output=True,
-                    text=True,
-                    timeout=300,
-                    check=False,
-                )
+            result = subprocess.run(
+                cmd,
+                env=single_gpu_env,
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
+            )
 
-                # Check if training script executed (may fail due to missing dependencies)
-                # but we're primarily testing the integration structure
-                if result.returncode != 0:
-                    # Log the error for debugging
-                    print(f"Training script stderr: {result.stderr}")
-                    print(f"Training script stdout: {result.stdout}")
+            assert (
+                result.returncode == 0
+            ), f"Training failed.\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
 
-                    # Skip if dataset not found or other expected issues
-                    if "not found" in result.stderr.lower() or "no such file" in result.stderr.lower():
-                        pytest.skip(f"Dataset or dependencies not available: {result.stderr}")
-
-                # If training completed, check for checkpoint
-                checkpoint_path = Path(tmpdir) / "checkpoint.pth.tar"
-                if checkpoint_path.exists():
-                    assert checkpoint_path.is_file()
-                    # Checkpoint should have non-zero size
-                    assert checkpoint_path.stat().st_size > 0
-
-            except subprocess.TimeoutExpired:
-                pytest.fail("Training pipeline timed out after 300 seconds")
-            except FileNotFoundError:
-                pytest.skip("Python or training script not found in environment")
+            # If training completed, check for checkpoint
+            checkpoint_path = Path(tmpdir) / "checkpoint.pth.tar"
+            assert checkpoint_path.is_file()
+            # Checkpoint should have non-zero size
+            assert checkpoint_path.stat().st_size > 0
 
     def test_training_with_validation(
         self, layoutformer_data_root, single_gpu_env, repo_root
@@ -132,33 +118,23 @@ class TestC2FTrainingPipeline:
                 "0",
             ]
 
-            try:
-                result = subprocess.run(
-                    cmd,
-                    env=single_gpu_env,
-                    capture_output=True,
-                    text=True,
-                    timeout=300,
-                    check=False,
-                )
+            result = subprocess.run(
+                cmd,
+                env=single_gpu_env,
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
+            )
 
-                if result.returncode != 0:
-                    print(f"Training stderr: {result.stderr}")
-                    print(f"Training stdout: {result.stdout}")
+            assert (
+                result.returncode == 0
+            ), f"Training failed.\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
 
-                    if "not found" in result.stderr.lower():
-                        pytest.skip(f"Dataset not available: {result.stderr}")
-
-                # Check for validation output
-                val_output_path = Path(tmpdir) / "val_output.pkl"
-                if val_output_path.exists():
-                    assert val_output_path.is_file()
-                    assert val_output_path.stat().st_size > 0
-
-            except subprocess.TimeoutExpired:
-                pytest.fail("Training with validation timed out")
-            except FileNotFoundError:
-                pytest.skip("Training dependencies not available")
+            # Check for validation output
+            val_output_path = Path(tmpdir) / "val_output.pkl"
+            assert val_output_path.is_file()
+            assert val_output_path.stat().st_size > 0
 
 
 @pytest.mark.integration
@@ -215,30 +191,22 @@ class TestC2FGeneratorPipeline:
                 "single",
             ]
 
-            try:
-                result = subprocess.run(
-                    cmd,
-                    env=single_gpu_env,
-                    capture_output=True,
-                    text=True,
-                    timeout=180,
-                    check=False,
-                )
+            result = subprocess.run(
+                cmd,
+                env=single_gpu_env,
+                capture_output=True,
+                text=True,
+                timeout=180,
+                check=False,
+            )
 
-                if result.returncode != 0:
-                    print(f"Generation stderr: {result.stderr}")
-                    if "not found" in result.stderr.lower():
-                        pytest.skip("Generation script or dataset not available")
+            assert (
+                result.returncode == 0
+            ), f"Generation failed.\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
 
-                # Check for output directory
-                pics_dir = Path(tmpdir) / "pics"
-                if pics_dir.exists():
-                    assert pics_dir.is_dir()
-
-            except subprocess.TimeoutExpired:
-                pytest.fail("Generation pipeline timed out")
-            except FileNotFoundError:
-                pytest.skip("Generation dependencies not available")
+            # Check for output directory
+            pics_dir = Path(tmpdir) / "pics"
+            assert pics_dir.is_dir()
 
 
 @pytest.mark.integration

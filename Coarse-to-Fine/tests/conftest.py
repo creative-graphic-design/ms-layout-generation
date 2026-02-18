@@ -10,8 +10,9 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = REPO_ROOT / "src"
+LAYOUTFORMER_SRC = REPO_ROOT.parent / "LayoutFormer++" / "src"
 
-for path in (SRC_DIR, REPO_ROOT):
+for path in (SRC_DIR, REPO_ROOT, LAYOUTFORMER_SRC):
     path_str = str(path)
     if path_str not in sys.path:
         sys.path.insert(0, path_str)
@@ -24,12 +25,9 @@ if "torch._six" not in sys.modules:
 
 def pytest_configure(config):
     random.seed(0)
-    try:
-        import torch
+    import torch
 
-        torch.manual_seed(0)
-    except ImportError:
-        pass
+    torch.manual_seed(0)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -78,22 +76,16 @@ def pythonpath_env(repo_root: Path) -> dict[str, str]:
 
 @pytest.fixture(scope="session")
 def gpu_available() -> bool:
-    try:
-        import torch
+    import torch
 
-        return torch.cuda.is_available()
-    except ImportError:
-        return False
+    return torch.cuda.is_available()
 
 
 @pytest.fixture(scope="session")
 def gpu_count() -> int:
-    try:
-        import torch
+    import torch
 
-        return torch.cuda.device_count() if torch.cuda.is_available() else 0
-    except ImportError:
-        return 0
+    return torch.cuda.device_count() if torch.cuda.is_available() else 0
 
 
 @pytest.fixture
@@ -148,28 +140,19 @@ def ddp_env():
 def seed_everything():
     import random
     import numpy as np
+    import torch
 
     seed = 42
     random.seed(seed)
     np.random.seed(seed)
 
-    try:
-        import torch
-
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
-            torch.backends.cudnn.deterministic = True
-            torch.backends.cudnn.benchmark = False
-    except ImportError:
-        pass
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
     yield
 
-    try:
-        import torch
-
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    except ImportError:
-        pass
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()

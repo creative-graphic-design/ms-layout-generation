@@ -2,9 +2,6 @@
 
 import pytest
 
-# Skip all tests in this module if layoutformer_pp is not installed
-layoutformer_pp = pytest.importorskip("layoutformer_pp")
-
 import torch
 
 from coarse_to_fine.c2f_trainer import Trainer
@@ -101,45 +98,32 @@ class TestLayoutFormerPPComponents:
 
     def test_import_layoutformer_utils(self):
         """Test importing layoutformer_pp utilities"""
-        try:
-            from layoutformer_pp.utils import utils
+        from layoutformer_pp.utils import utils
 
-            assert utils is not None
-        except ImportError as e:
-            pytest.skip(f"Cannot import layoutformer_pp.utils: {e}")
+        assert utils is not None
 
     def test_import_layoutformer_data(self):
         """Test importing layoutformer_pp data modules"""
-        try:
-            from layoutformer_pp.data.transforms import DiscretizeBoundingBox
+        from layoutformer_pp.data.transforms import DiscretizeBoundingBox
 
-            assert DiscretizeBoundingBox is not None
-        except ImportError as e:
-            pytest.skip(f"Cannot import layoutformer_pp.data: {e}")
+        assert DiscretizeBoundingBox is not None
 
     def test_import_layoutformer_evaluation(self):
         """Test importing layoutformer_pp evaluation modules"""
-        try:
-            from layoutformer_pp.evaluation import metrics
+        from layoutformer_pp.evaluation import metrics
 
-            assert metrics is not None
-        except ImportError as e:
-            pytest.skip(f"Cannot import layoutformer_pp.evaluation: {e}")
+        assert metrics is not None
 
     def test_discretize_bounding_box_basic(self):
         """Test DiscretizeBoundingBox transform"""
-        try:
-            from layoutformer_pp.data.transforms import DiscretizeBoundingBox
+        from layoutformer_pp.data.transforms import DiscretizeBoundingBox
 
-            transform = DiscretizeBoundingBox(num_x_grid=32, num_y_grid=32)
+        transform = DiscretizeBoundingBox(num_x_grid=32, num_y_grid=32)
 
-            # Test with a simple bbox (normalized coordinates)
-            bbox = torch.tensor([[0.1, 0.2, 0.5, 0.6]])
-            discretized = transform.discretize(bbox)
+        # Test with a simple bbox (normalized coordinates)
+        bbox = torch.tensor([[0.1, 0.2, 0.5, 0.6]])
+        discretized = transform.discretize(bbox)
 
-            # Check output is discretized (integer values)
-            assert discretized.dtype in [torch.long, torch.int32, torch.int64]
-            assert discretized.shape == bbox.shape
-
-        except ImportError as e:
-            pytest.skip(f"Cannot import DiscretizeBoundingBox: {e}")
+        # Check output is discretized (integer values)
+        assert discretized.dtype in [torch.long, torch.int32, torch.int64]
+        assert discretized.shape == bbox.shape
