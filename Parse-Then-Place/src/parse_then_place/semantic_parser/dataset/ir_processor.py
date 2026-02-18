@@ -34,7 +34,7 @@ class IRProcessor:
             result = result.replace(tag, new_tag)
 
         result = result.replace(':', ' : ')
-        result = re.sub("\s+", " ", result)
+        result = re.sub(r"\s+", " ", result)
 
         if not self.remove_value and self.replace_value and idx2value is not None:
             value_map = {
@@ -106,5 +106,5 @@ class IRProcessor:
                     result = result.replace(f" {idx}'", f" {_value}'")
                 # replace &
                 result = result.replace("&", " and ")
-        result = re.sub("\s+", " ", result)
+        result = re.sub(r"\s+", " ", result)
         return result
