@@ -1,15 +1,45 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.2
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
     hooks:
-      - id: ruff
-      - id: ruff-format
+      - id: trailing-whitespace
+        files: ^LayoutDiffusion/
+      - id: end-of-file-fixer
+        files: ^LayoutDiffusion/
+      - id: check-yaml
+        files: ^LayoutDiffusion/
+      - id: check-toml
+        files: ^LayoutDiffusion/
+      - id: check-added-large-files
+        files: ^LayoutDiffusion/
+
   - repo: https://github.com/jendrikseipp/vulture
     rev: v2.14
     hooks:
       - id: vulture
-        args: ["--min-confidence", "80", "."]
-  - repo: https://github.com/pre-commit/mirrors-pytest
-    rev: v8.3.5
+        pass_filenames: false
+        args: [LayoutDiffusion/src, LayoutDiffusion/improved-diffusion/improved_diffusion, LayoutDiffusion/eval_src, LayoutDiffusion/util_scripts]
+        files: ^LayoutDiffusion/
+
+  - repo: local
     hooks:
+      - id: ruff
+        name: ruff (uv)
+        entry: bash -c 'cd LayoutDiffusion && uv run ruff check --fix --exit-non-zero-on-fix'
+        language: system
+        types_or: [python, pyi]
+        files: ^LayoutDiffusion/
+
+      - id: ruff-format
+        name: ruff format (uv)
+        entry: bash -c 'cd LayoutDiffusion && uv run ruff format'
+        language: system
+        types_or: [python, pyi]
+        files: ^LayoutDiffusion/
+
       - id: pytest
+        name: pytest (uv)
+        entry: bash -c 'cd LayoutDiffusion && uv run pytest -vsx --cov=src/layout_diffusion --cov=improved-diffusion/improved_diffusion --cov=improved-diffusion/scripts --cov=eval_src --cov=util_scripts --cov-config=.coveragerc --cov-fail-under=90'
+        language: system
+        pass_filenames: false
+        files: ^LayoutDiffusion/
