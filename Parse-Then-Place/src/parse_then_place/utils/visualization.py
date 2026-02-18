@@ -56,8 +56,9 @@ def mkdir_if_missing(dir_path):
     try:
         os.makedirs(dir_path)
     except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
+        if e.errno == errno.EEXIST and os.path.isdir(dir_path):
+            return
+        raise
 
 
 def draw_layouts(args, RE_PATTERN):
