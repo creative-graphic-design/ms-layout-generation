@@ -262,10 +262,7 @@ class EvaluateFn:
 
     def _is_set_accuracy(self, gold_lf, pred_lf):
         _gold_seq = self.executor(gold_lf)[0].input
-        try:
-            _pred_seq = self.executor(pred_lf)[0].input
-        except:
-            return False
+        _pred_seq = self.executor(pred_lf)[0].input
         label_set = LABEL[self.dataset_name]
         _pattern = f"((?:{'|'.join(label_set)}) [^ ]+ [^ ]+)"
         _gold_constraint = Counter(re.findall(_pattern, _gold_seq))
