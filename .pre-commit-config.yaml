@@ -3,43 +3,149 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
-        files: ^LayoutDiffusion/
       - id: end-of-file-fixer
-        files: ^LayoutDiffusion/
       - id: check-yaml
-        files: ^LayoutDiffusion/
       - id: check-toml
-        files: ^LayoutDiffusion/
       - id: check-added-large-files
-        files: ^LayoutDiffusion/
-
-  - repo: https://github.com/jendrikseipp/vulture
-    rev: v2.14
-    hooks:
-      - id: vulture
-        pass_filenames: false
-        args: [LayoutDiffusion/src, LayoutDiffusion/improved-diffusion/improved_diffusion, LayoutDiffusion/eval_src, LayoutDiffusion/util_scripts]
-        files: ^LayoutDiffusion/
 
   - repo: local
     hooks:
-      - id: ruff
-        name: ruff (uv)
+      - id: vulture-c2f
+        name: vulture (Coarse-to-Fine)
+        entry: bash -c 'cd Coarse-to-Fine && uv run vulture src'
+        language: system
+        pass_filenames: false
+        files: ^Coarse-to-Fine/
+
+      - id: ruff-c2f
+        name: ruff (Coarse-to-Fine)
+        entry: bash -c 'cd Coarse-to-Fine && uv run ruff check --fix --exit-non-zero-on-fix'
+        language: system
+        types_or: [python, pyi]
+        files: ^Coarse-to-Fine/
+
+      - id: ruff-format-c2f
+        name: ruff format (Coarse-to-Fine)
+        entry: bash -c 'cd Coarse-to-Fine && uv run ruff format'
+        language: system
+        types_or: [python, pyi]
+        files: ^Coarse-to-Fine/
+
+      - id: pytest-c2f
+        name: pytest (Coarse-to-Fine)
+        entry: bash -c 'cd Coarse-to-Fine && uv run pytest -vsx -o addopts= --cov=coarse_to_fine'
+        language: system
+        pass_filenames: false
+        files: ^Coarse-to-Fine/
+
+      - id: vulture-layoutdiffusion
+        name: vulture (LayoutDiffusion)
+        entry: bash -c 'cd LayoutDiffusion && uv run vulture src improved-diffusion/improved_diffusion eval_src util_scripts'
+        language: system
+        pass_filenames: false
+        files: ^LayoutDiffusion/
+
+      - id: ruff-layoutdiffusion
+        name: ruff (LayoutDiffusion)
         entry: bash -c 'cd LayoutDiffusion && uv run ruff check --fix --exit-non-zero-on-fix'
         language: system
         types_or: [python, pyi]
         files: ^LayoutDiffusion/
 
-      - id: ruff-format
-        name: ruff format (uv)
+      - id: ruff-format-layoutdiffusion
+        name: ruff format (LayoutDiffusion)
         entry: bash -c 'cd LayoutDiffusion && uv run ruff format'
         language: system
         types_or: [python, pyi]
         files: ^LayoutDiffusion/
 
-      - id: pytest
-        name: pytest (uv)
-        entry: bash -c 'cd LayoutDiffusion && uv run pytest -vsx --cov=src/layout_diffusion --cov=improved-diffusion/improved_diffusion --cov=improved-diffusion/scripts --cov=eval_src --cov=util_scripts --cov-config=.coveragerc --cov-fail-under=90'
+      - id: pytest-layoutdiffusion
+        name: pytest (LayoutDiffusion)
+        entry: bash -c 'cd LayoutDiffusion && uv run pytest -vsx -o addopts= --cov=src/layout_diffusion --cov=improved-diffusion/improved_diffusion --cov=improved-diffusion/scripts --cov=eval_src --cov=util_scripts --cov-config=.coveragerc --cov-fail-under=90'
         language: system
         pass_filenames: false
         files: ^LayoutDiffusion/
+
+      - id: vulture-layoutformer-pp
+        name: vulture (LayoutFormer++)
+        entry: bash -c 'cd LayoutFormer++ && uv run vulture src'
+        language: system
+        pass_filenames: false
+        files: ^LayoutFormer\+\+/
+
+      - id: ruff-layoutformer-pp
+        name: ruff (LayoutFormer++)
+        entry: bash -c 'cd LayoutFormer++ && uv run ruff check --fix --exit-non-zero-on-fix'
+        language: system
+        types_or: [python, pyi]
+        files: ^LayoutFormer\+\+/
+
+      - id: ruff-format-layoutformer-pp
+        name: ruff format (LayoutFormer++)
+        entry: bash -c 'cd LayoutFormer++ && uv run ruff format'
+        language: system
+        types_or: [python, pyi]
+        files: ^LayoutFormer\+\+/
+
+      - id: pytest-layoutformer-pp
+        name: pytest (LayoutFormer++)
+        entry: bash -c 'cd LayoutFormer++ && uv run pytest -vsx -o addopts= --cov=layoutformer_pp'
+        language: system
+        pass_filenames: false
+        files: ^LayoutFormer\+\+/
+
+      - id: vulture-layoutprompter
+        name: vulture (LayoutPrompter)
+        entry: bash -c 'cd LayoutPrompter && uv run vulture src'
+        language: system
+        pass_filenames: false
+        files: ^LayoutPrompter/
+
+      - id: ruff-layoutprompter
+        name: ruff (LayoutPrompter)
+        entry: bash -c 'cd LayoutPrompter && uv run ruff check --fix --exit-non-zero-on-fix'
+        language: system
+        types_or: [python, pyi]
+        files: ^LayoutPrompter/
+
+      - id: ruff-format-layoutprompter
+        name: ruff format (LayoutPrompter)
+        entry: bash -c 'cd LayoutPrompter && uv run ruff format'
+        language: system
+        types_or: [python, pyi]
+        files: ^LayoutPrompter/
+
+      - id: pytest-layoutprompter
+        name: pytest (LayoutPrompter)
+        entry: bash -c 'cd LayoutPrompter && uv run pytest -vsx -o addopts= --cov=layoutprompter'
+        language: system
+        pass_filenames: false
+        files: ^LayoutPrompter/
+
+      - id: vulture-parse-then-place
+        name: vulture (Parse-Then-Place)
+        entry: bash -c 'cd Parse-Then-Place && uv run vulture src'
+        language: system
+        pass_filenames: false
+        files: ^Parse-Then-Place/
+
+      - id: ruff-parse-then-place
+        name: ruff (Parse-Then-Place)
+        entry: bash -c 'cd Parse-Then-Place && uv run ruff check --fix --exit-non-zero-on-fix'
+        language: system
+        types_or: [python, pyi]
+        files: ^Parse-Then-Place/
+
+      - id: ruff-format-parse-then-place
+        name: ruff format (Parse-Then-Place)
+        entry: bash -c 'cd Parse-Then-Place && uv run ruff format'
+        language: system
+        types_or: [python, pyi]
+        files: ^Parse-Then-Place/
+
+      - id: pytest-parse-then-place
+        name: pytest (Parse-Then-Place)
+        entry: bash -c 'cd Parse-Then-Place && uv run pytest -vsx -o addopts= --cov=parse_then_place'
+        language: system
+        pass_filenames: false
+        files: ^Parse-Then-Place/
