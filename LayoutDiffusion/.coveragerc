@@ -1,0 +1,21 @@
+[run]
+branch = True
+source =
+    src/layout_diffusion
+    improved-diffusion/improved_diffusion
+    improved-diffusion/scripts
+    eval_src
+    util_scripts
+omit =
+    transformers/*
+    layoutdiffusion-data/*
+    tests/*
+    **/__pycache__/*
+    **/.venv/*
+    **/tmp/*
+    **/.mypy_cache/*
+    **/.pytest_cache/*
+
+[report]
+show_missing = True
+skip_covered = False

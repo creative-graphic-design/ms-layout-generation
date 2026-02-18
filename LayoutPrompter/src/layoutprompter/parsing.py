@@ -61,15 +61,20 @@ class Parser:
         return labels, bboxes
 
     def __call__(self, predictions):
-        if isinstance(predictions, openai.types.completion.Completion):
-            predictions = predictions.choices
-        if isinstance(predictions[0], openai.types.completion_choice.CompletionChoice):
-            predictions = [prediction.text for prediction in predictions]
+        types = getattr(openai, "types", None)
+        if types is not None:
+            completion_mod = getattr(types, "completion", None)
+            completion_cls = getattr(completion_mod, "Completion", None)
+            if completion_cls is not None and isinstance(predictions, completion_cls):
+                predictions = predictions.choices
+
+            choice_mod = getattr(types, "completion_choice", None)
+            choice_cls = getattr(choice_mod, "CompletionChoice", None)
+            if choice_cls is not None and predictions:
+                if isinstance(predictions[0], choice_cls):
+                    predictions = [prediction.text for prediction in predictions]
 
         parsed_predictions = []
         for prediction in predictions:
-            try:
-                parsed_predictions.append(self._extract_labels_and_bboxes(prediction))
-            except:
-                continue
+            parsed_predictions.append(self._extract_labels_and_bboxes(prediction))
         return parsed_predictions

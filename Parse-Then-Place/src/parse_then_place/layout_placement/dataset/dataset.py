@@ -72,11 +72,8 @@ class PlacementDataset(Dataset):
         self.target_data = []
         for prediction in predictions:
             lf = prediction['pred_lf'] if self.config.args.test_prediction_ir else prediction['gold_lf']
-            try:
-                execution = executor(lf)[0].input
-                self.source_data.append(execution)
-            except:
-                self.source_data.append('')
+            execution = executor(lf)[0].input
+            self.source_data.append(execution)
             self.target_data.append('')
 
     def __len__(self):

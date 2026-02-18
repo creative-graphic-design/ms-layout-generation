@@ -14,7 +14,6 @@ import torch as th
 
 from .losses import (
     discretized_gaussian_log_likelihood,
-    discretized_text_log_likelihood,
     normal_kl,
 )
 from .nn import mean_flat
@@ -51,10 +50,13 @@ def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
     elif schedule_name == "mix_sqrt":
         return betas_for_alpha_bar(
             num_diffusion_timesteps,
-            lambda t: (1 - np.cbrt(t / 2.0 + 0.000001))
-            if t < 0.5
-            else min(
-                (1 - np.sqrt(2.0 * t - 1.0 + 0.0001)), (1 - np.cbrt(t / 2.0 + 0.000001))
+            lambda t: (
+                (1 - np.cbrt(t / 2.0 + 0.000001))
+                if t < 0.5
+                else min(
+                    (1 - np.sqrt(2.0 * t - 1.0 + 0.0001)),
+                    (1 - np.cbrt(t / 2.0 + 0.000001)),
+                )
             ),
         )
     elif schedule_name == "trunc_cos":
@@ -331,23 +333,11 @@ class GaussianDiffusion:
 
         # DEBUG:
         if "debug_x_t" in model_kwargs:
-            flag = True
-            debug_x_t = model_kwargs.pop("debug_x_t")
-            debug_t_batch = model_kwargs.pop("debug_t_batch")
-            debug_direct_pred_eps = model_kwargs.pop("debug_direct_pred_eps")
-            debug_x_start_cycle_pred = model_kwargs.pop("debug_x_start_cycle_pred")
-        else:
-            flag = False
+            model_kwargs.pop("debug_x_t", None)
+            model_kwargs.pop("debug_t_batch", None)
+            model_kwargs.pop("debug_direct_pred_eps", None)
+            model_kwargs.pop("debug_x_start_cycle_pred", None)
         model_output = model(x, self._scale_timesteps(t), **model_kwargs)
-
-        # DEBUG path:
-        def is_very_close(a, b):
-            return ((a - b) ** 2).mean()
-
-        direct_pred_eps = model(x, self._scale_timesteps(t), **model_kwargs)
-        x_start_cycle_pred = self._predict_xstart_from_eps(
-            x_t=x, t=t, eps=direct_pred_eps
-        )
 
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             if self.model_arch == "conv-unet":
@@ -453,8 +443,7 @@ class GaussianDiffusion:
         """
         if model_kwargs is None:
             model_kwargs = {}
-        if True:
-            B, C = x.size(0), x.size(-1)
+        B, C = x.size(0), x.size(-1)
         assert t.shape == (B,)
         model_output = model(
             x, self._scale_timesteps(t), **model_kwargs, self_cond=self_cond
@@ -1267,7 +1256,7 @@ class GaussianDiffusion:
             x_start=x_start, x_t=x_t, t=t
         )
         assert input_ids is not None
-        mapping_func = model_kwargs.pop("mapping_func", self.mapping_func)
+        model_kwargs.pop("mapping_func", self.mapping_func)
         # assert 'input_ids' in model_kwargs
         # input_ids = model_kwargs.pop('input_ids')
 

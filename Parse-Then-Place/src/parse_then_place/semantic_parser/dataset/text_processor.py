@@ -14,7 +14,7 @@ class TextProcessor:
     def preprocess(self, text: str) -> Tuple[str, Dict]:
         result = text.replace("#", "").strip().lower()
         result = result.replace('“', '"').replace('”', '"').replace("‘", "'").replace("’", "'")
-        result = re.sub("\s+", " ", result)
+        result = re.sub(r"\s+", " ", result)
         value_map = None
         if self.replace_value:
             result, value_map = self.extract_explicit_values(result)
@@ -33,5 +33,5 @@ class TextProcessor:
             value_map[placeholder] = v.strip('"').strip()
             result = result.replace(v, f'"{placeholder}"', 1) # replace one occurrence per time
         result = re.sub(r"(\w)`s\s+", r"\g<1>'s ", result)
-        result = re.sub("\s+", " ", result)
+        result = re.sub(r"\s+", " ", result)
         return result, value_map
