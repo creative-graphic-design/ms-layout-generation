@@ -45,14 +45,14 @@ class TrainLoop:
         schedule_sampler=None,
         weight_decay=0.0,
         lr_anneal_steps=0,
-        checkpoint_path='',
-        gradient_clipping=-1.,
+        checkpoint_path="",
+        gradient_clipping=-1.0,
         eval_data=None,
         eval_interval=-1,
-        training_mode='e2e',
+        training_mode="e2e",
     ):
         self.model = model
-        self.training_mode=training_mode
+        self.training_mode = training_mode
         self.diffusion = diffusion
         self.data = data
         self.eval_data = eval_data
@@ -83,7 +83,8 @@ class TrainLoop:
         self.lg_loss_scale = INITIAL_LOG_LOSS_SCALE
         self.sync_cuda = th.cuda.is_available()
 
-        self.checkpoint_path = checkpoint_path # DEBUG **
+        self.checkpoint_path = checkpoint_path  # DEBUG **
+        self.device = self._get_model_device()
 
         self._load_and_sync_parameters()
         if self.use_fp16:
@@ -102,7 +103,8 @@ class TrainLoop:
                 copy.deepcopy(self.master_params) for _ in range(len(self.ema_rate))
             ]
 
-        if th.cuda.is_available(): # DEBUG **
+        model_on_cuda = any(p.is_cuda for p in self.model.parameters())
+        if th.cuda.is_available() and model_on_cuda:  # DEBUG **
             self.use_ddp = True
             self.ddp_model = DDP(
                 self.model,
@@ -136,6 +138,12 @@ class TrainLoop:
 
         dist_util.sync_params(self.model.parameters())
 
+    def _get_model_device(self):
+        try:
+            return next(self.model.parameters()).device
+        except StopIteration:
+            return dist_util.dev()
+
     def _load_ema_parameters(self, rate):
         ema_params = copy.deepcopy(self.master_params)
 
@@ -166,19 +174,23 @@ class TrainLoop:
 
     def _setup_fp16(self):
         self.master_params = make_master_params(self.model_params)
-        self.model.convert_to_fp16()
+        if any(p.is_cuda for p in self.model.parameters()):
+            if hasattr(self.model, "convert_to_fp16"):
+                self.model.convert_to_fp16()
+            else:
+                self.model.half()
 
     def run_loop(self):
         while (
             not self.lr_anneal_steps
             or self.step + self.resume_step < self.lr_anneal_steps
         ):
-            batch, cond = next(self.data) #load data
+            batch, cond = next(self.data)  # load data
 
             # print(batch.shape,'batch') #(bz, img**2, embed_dim) (64,144,64) (64,20,4)
             # print(cond['input_ids'].shape,'cond')# (bz, img**2) (64,144) (64,20)
 
-            self.run_step(batch, cond)  #single step
+            self.run_step(batch, cond)  # single step
 
             if self.step % self.log_interval == 0:
                 logger.dumpkvs()
@@ -207,41 +219,21 @@ class TrainLoop:
     def forward_only(self, batch, cond):
         with th.no_grad():
             zero_grad(self.model_params)
+            device = self._get_model_device()
             for i in range(0, batch.shape[0], self.microbatch):
-                micro = batch[i: i + self.microbatch].to(dist_util.dev())
+                micro = batch[i : i + self.microbatch].to(device)
                 micro_cond = {
-                    k: v[i: i + self.microbatch].to(dist_util.dev())
-                    for k, v in cond.items()
+                    k: v[i : i + self.microbatch].to(device) for k, v in cond.items()
                 }
                 last_batch = (i + self.microbatch) >= batch.shape[0]
-                t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
+                t, weights = self.schedule_sampler.sample(micro.shape[0], device)
                 # print(micro_cond.keys())
                 ### Main computation here ###
-                if self.training_mode=='discrete':
-                
-                    compute_losses = functools.partial(
-                    self.diffusion.training_losses,
-                    self.ddp_model,
-                    micro_cond['input_ids'],
-                    model_kwargs=micro_cond,
-                    )
-
-                    if last_batch or not self.use_ddp:
-
-                        losses = compute_losses()
-                    else:
-                        with self.ddp_model.no_sync():
-                            losses = compute_losses()
-
-                    log_loss_dict(
-                        self.diffusion, t, {f"eval_{k}": v * weights for k, v in losses.items()}
-                    )
-                else:
+                if self.training_mode == "discrete":
                     compute_losses = functools.partial(
                         self.diffusion.training_losses,
-                        self.ddp_model, #that is model in ddpm here ddp means distributed
-                        micro,             # micro batch
-                        t,                  # t from sampler
+                        self.ddp_model,
+                        micro_cond["input_ids"],
                         model_kwargs=micro_cond,
                     )
 
@@ -252,33 +244,53 @@ class TrainLoop:
                             losses = compute_losses()
 
                     log_loss_dict(
-                        self.diffusion, t, {f"eval_{k}": v * weights for k, v in losses.items()}
+                        self.diffusion,
+                        t,
+                        {f"eval_{k}": v * weights for k, v in losses.items()},
+                    )
+                else:
+                    compute_losses = functools.partial(
+                        self.diffusion.training_losses,
+                        self.ddp_model,  # that is model in ddpm here ddp means distributed
+                        micro,  # micro batch
+                        t,  # t from sampler
+                        model_kwargs=micro_cond,
                     )
 
+                    if last_batch or not self.use_ddp:
+                        losses = compute_losses()
+                    else:
+                        with self.ddp_model.no_sync():
+                            losses = compute_losses()
+
+                    log_loss_dict(
+                        self.diffusion,
+                        t,
+                        {f"eval_{k}": v * weights for k, v in losses.items()},
+                    )
 
     def forward_backward(self, batch, cond):
         zero_grad(self.model_params)
+        device = self._get_model_device()
         for i in range(0, batch.shape[0], self.microbatch):
-            micro = batch[i : i + self.microbatch].to(dist_util.dev())
+            micro = batch[i : i + self.microbatch].to(device)
             micro_cond = {
-                k: v[i : i + self.microbatch].to(dist_util.dev())
-                for k, v in cond.items()
+                k: v[i : i + self.microbatch].to(device) for k, v in cond.items()
             }
             # micro_cond= cond[i : i + self.microbatch].to(dist_util.dev())
             last_batch = (i + self.microbatch) >= batch.shape[0]
-            t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
+            t, weights = self.schedule_sampler.sample(micro.shape[0], device)
             # print(micro_cond.keys())
 
-            #compute loss here
+            # compute loss here
             # real compute in diffusion.training_losses
 
-            if self.training_mode=='discrete':
-                
+            if self.training_mode == "discrete":
                 compute_losses = functools.partial(
-                self.diffusion.training_losses,
-                self.ddp_model,
-                micro_cond['input_ids'],
-                model_kwargs=micro_cond,
+                    self.diffusion.training_losses,
+                    self.ddp_model,
+                    micro_cond["input_ids"],
+                    model_kwargs=micro_cond,
                 )
 
                 if last_batch or not self.use_ddp:
@@ -289,10 +301,11 @@ class TrainLoop:
 
                 loss = losses["loss"].mean()
                 log_loss_dict(
-                        self.diffusion, t, {f"eval_{k}": v * weights for k, v in losses.items()}
-                    )
+                    self.diffusion,
+                    t,
+                    {f"eval_{k}": v * weights for k, v in losses.items()},
+                )
             else:
-                
                 compute_losses = functools.partial(
                     self.diffusion.training_losses,
                     self.ddp_model,
@@ -301,26 +314,25 @@ class TrainLoop:
                     model_kwargs=micro_cond,
                 )
 
-
                 if last_batch or not self.use_ddp:
                     losses = compute_losses()
                 else:
                     with self.ddp_model.no_sync():
                         losses = compute_losses()
-                
+
                 if isinstance(self.schedule_sampler, LossAwareSampler):
                     self.schedule_sampler.update_with_local_losses(
                         t, losses["loss"].detach()
                     )
 
-                loss = (losses["loss"] * weights).mean() #shape of losses
+                loss = (losses["loss"] * weights).mean()  # shape of losses
 
                 log_loss_dict(
                     self.diffusion, t, {k: v * weights for k, v in losses.items()}
                 )
 
             if self.use_fp16:
-                loss_scale = 2 ** self.lg_loss_scale
+                loss_scale = 2**self.lg_loss_scale
                 (loss * loss_scale).backward()
             else:
                 loss.backward()
@@ -332,7 +344,7 @@ class TrainLoop:
             return
 
         model_grads_to_master_grads(self.model_params, self.master_params)
-        self.master_params[0].grad.mul_(1.0 / (2 ** self.lg_loss_scale))
+        self.master_params[0].grad.mul_(1.0 / (2**self.lg_loss_scale))
         self._log_grad_norm()
         self._anneal_lr()
         self.opt.step()
@@ -342,13 +354,13 @@ class TrainLoop:
         self.lg_loss_scale += self.fp16_scale_growth
 
     def grad_clip(self):
-        max_grad_norm=self.gradient_clipping #3.0
+        max_grad_norm = self.gradient_clipping  # 3.0
         if hasattr(self.opt, "clip_grad_norm"):
             self.opt.clip_grad_norm(max_grad_norm)
         else:
             # Revert to normal clipping otherwise, handling Apex or full precision
             th.nn.utils.clip_grad_norm_(
-                self.model.parameters(), #amp.master_params(self.opt) if self.use_apex else
+                self.model.parameters(),  # amp.master_params(self.opt) if self.use_apex else
                 max_grad_norm,
             )
 
@@ -364,7 +376,7 @@ class TrainLoop:
     def _log_grad_norm(self):
         sqsum = 0.0
         for p in self.master_params:
-            sqsum += (p.grad ** 2).sum().item()
+            sqsum += (p.grad**2).sum().item()
 
         logger.logkv_mean("grad_norm", np.sqrt(sqsum))
 
@@ -388,13 +400,15 @@ class TrainLoop:
             if dist.get_rank() == 0:
                 logger.log(f"saving model {rate}...")
                 if not rate:
-                    filename = f"model{(self.step+self.resume_step):06d}.pt"
+                    filename = f"model{(self.step + self.resume_step):06d}.pt"
                 else:
-                    filename = f"ema_{rate}_{(self.step+self.resume_step):06d}.pt"
-                print('writing to', bf.join(self.checkpoint_path, filename))
+                    filename = f"ema_{rate}_{(self.step + self.resume_step):06d}.pt"
+                print("writing to", bf.join(self.checkpoint_path, filename))
                 # with bf.BlobFile(bf.join(get_blob_logdir(), filename), "wb") as f:
                 #     th.save(state_dict, f)
-                with bf.BlobFile(bf.join(self.checkpoint_path, filename), "wb") as f: # DEBUG **
+                with bf.BlobFile(
+                    bf.join(self.checkpoint_path, filename), "wb"
+                ) as f:  # DEBUG **
                     th.save(state_dict, f)
 
         save_checkpoint(0, self.master_params)
@@ -413,7 +427,8 @@ class TrainLoop:
     def _master_params_to_state_dict(self, master_params):
         if self.use_fp16:
             master_params = unflatten_master_params(
-                list(self.model.parameters()), master_params # DEBUG **
+                list(self.model.parameters()),
+                master_params,  # DEBUG **
             )
         state_dict = self.model.state_dict()
         for i, (name, _value) in enumerate(self.model.named_parameters()):
@@ -471,4 +486,3 @@ def log_loss_dict(diffusion, ts, losses):
         for sub_t, sub_loss in zip(ts.cpu().numpy(), values.detach().cpu().numpy()):
             quartile = int(4 * sub_t / diffusion.num_timesteps)
             logger.logkv_mean(f"{key}_q{quartile}", sub_loss)
-

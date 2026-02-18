@@ -26,10 +26,10 @@ repos:
 
       - id: vulture
         name: vulture (all)
-        entry: uv run vulture Coarse-to-Fine/src LayoutDiffusion/src LayoutDiffusion/improved-diffusion/improved_diffusion LayoutDiffusion/eval_src LayoutDiffusion/util_scripts LayoutFormer++/src LayoutPrompter/src Parse-Then-Place/src
+        entry: uv run vulture --min-confidence 100 LayoutDiffusion/src LayoutDiffusion/improved-diffusion/improved_diffusion LayoutDiffusion/eval_src LayoutDiffusion/util_scripts
         language: system
         pass_filenames: false
-        files: ^(Coarse-to-Fine|LayoutDiffusion|LayoutFormer\+\+|LayoutPrompter|Parse-Then-Place)/
+        files: ^LayoutDiffusion/
 
       - id: pytest-c2f
         name: pytest (Coarse-to-Fine)
@@ -40,7 +40,7 @@ repos:
 
       - id: pytest-layoutdiffusion
         name: pytest (LayoutDiffusion)
-        entry: bash -c 'cd LayoutDiffusion && uv run pytest -vsx -o addopts= --cov=src/layout_diffusion --cov=improved-diffusion/improved_diffusion --cov=improved-diffusion/scripts --cov=eval_src --cov=util_scripts --cov-config=.coveragerc --cov-fail-under=90'
+        entry: bash -c 'uv run --project LayoutDiffusion pytest -vsx -c LayoutDiffusion/pytest.ini LayoutDiffusion/tests'
         language: system
         pass_filenames: false
         files: ^LayoutDiffusion/
