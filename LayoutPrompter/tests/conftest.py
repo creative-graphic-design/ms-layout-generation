@@ -98,20 +98,24 @@ def pythonpath_env(repo_root: Path) -> dict[str, str]:
 def gpu_available() -> bool:
     import torch
 
-    return torch.cuda.is_available()
+    available = torch.cuda.is_available()
+    if not available:
+        raise RuntimeError("GPU is required for this test suite")
+    return True
 
 
 @pytest.fixture(scope="session")
 def gpu_count() -> int:
     import torch
 
-    return torch.cuda.device_count() if torch.cuda.is_available() else 0
+    count = torch.cuda.device_count()
+    if count < 1:
+        raise RuntimeError("GPU is required for this test suite")
+    return count
 
 
 @pytest.fixture
 def gpu_device(gpu_available: bool):
-    if not gpu_available:
-        raise RuntimeError("GPU not available")
     import torch
 
     return torch.device("cuda:0")
@@ -121,8 +125,6 @@ def gpu_device(gpu_available: bool):
 def single_gpu_env(
     pythonpath_env: dict[str, str], gpu_available: bool
 ) -> dict[str, str]:
-    if not gpu_available:
-        raise RuntimeError("GPU not available")
     env = pythonpath_env.copy()
     env["CUDA_VISIBLE_DEVICES"] = "0"
     return env

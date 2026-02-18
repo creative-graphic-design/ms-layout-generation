@@ -99,8 +99,7 @@ def run_step_with_extra(args, model, data, device):
 @pytest.mark.gpu
 @pytest.mark.unit
 def test_generator_ddp_single_gpu(gpu_available, ddp_env):
-    if not gpu_available:
-        pytest.skip("GPU not available")
+    assert gpu_available, "GPU not available"
 
     if dist.is_initialized():
         dist.destroy_process_group()
@@ -142,8 +141,7 @@ def test_generator_ddp_single_gpu(gpu_available, ddp_env):
 @pytest.mark.gpu
 @pytest.mark.unit
 def test_generator_single_checkpoint_and_images(gpu_available):
-    if not gpu_available:
-        pytest.skip("GPU not available")
+    assert gpu_available, "GPU not available"
 
     with tempfile.TemporaryDirectory() as tmpdir:
         args = SimpleNamespace(
@@ -188,8 +186,7 @@ def test_generator_single_checkpoint_and_images(gpu_available):
 @pytest.mark.gpu
 @pytest.mark.unit
 def test_generator_collect_layouts_ltwh(gpu_available):
-    if not gpu_available:
-        pytest.skip("GPU not available")
+    assert gpu_available, "GPU not available"
 
     with tempfile.TemporaryDirectory() as tmpdir:
         args = SimpleNamespace(

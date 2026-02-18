@@ -55,10 +55,14 @@ def repo_root() -> Path:
 def layoutformer_data_root() -> Path:
     # LayoutFormer++ datasets for Coarse-to-Fine
     layoutformer_root = REPO_ROOT.parent / "LayoutFormer++"
-    datasets_dir = layoutformer_root / "datasets"
-    if not datasets_dir.exists():
-        pytest.skip(f"LayoutFormer++ datasets not found: {datasets_dir}")
-    return datasets_dir
+    candidates = [
+        layoutformer_root / "datasets",
+        layoutformer_root / "LayoutFormer" / "datasets",
+    ]
+    for datasets_dir in candidates:
+        if datasets_dir.exists():
+            return datasets_dir
+    assert False, f"LayoutFormer++ datasets not found: {candidates}"
 
 
 @pytest.fixture(scope="session")
@@ -90,8 +94,7 @@ def gpu_count() -> int:
 
 @pytest.fixture
 def gpu_device(gpu_available: bool):
-    if not gpu_available:
-        pytest.skip("GPU not available")
+    assert gpu_available, "GPU not available"
     import torch
 
     return torch.device("cuda:0")
@@ -101,8 +104,7 @@ def gpu_device(gpu_available: bool):
 def single_gpu_env(
     pythonpath_env: dict[str, str], gpu_available: bool
 ) -> dict[str, str]:
-    if not gpu_available:
-        pytest.skip("GPU not available")
+    assert gpu_available, "GPU not available"
     env = pythonpath_env.copy()
     env["CUDA_VISIBLE_DEVICES"] = "0"
     return env
@@ -110,8 +112,7 @@ def single_gpu_env(
 
 @pytest.fixture
 def multi_gpu_env(pythonpath_env: dict[str, str], gpu_count: int) -> dict[str, str]:
-    if gpu_count < 2:
-        pytest.skip(f"Multi-GPU not available (found {gpu_count} GPUs)")
+    assert gpu_count >= 2, f"Multi-GPU not available (found {gpu_count} GPUs)"
     env = pythonpath_env.copy()
     env["CUDA_VISIBLE_DEVICES"] = "0,1"
     return env

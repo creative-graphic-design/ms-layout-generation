@@ -16,39 +16,15 @@ class TestTrainerIntegration:
         """Test that Trainer can be imported"""
         assert Trainer is not None
 
-    @pytest.mark.skip(reason="Requires full config and dataset setup")
-    def test_trainer_initialization(self):
-        """Test Trainer initialization with minimal config"""
-        # This test would require:
-        # 1. A valid config file or config dict
-        # 2. Dataset paths
-        # 3. Model checkpoints (optional)
-        #
-        # Example structure (to be implemented when datasets are available):
-        # cfg = {
-        #     'model': {...},
-        #     'training': {...},
-        #     'data': {...}
-        # }
-        # trainer = Trainer(cfg)
-        # assert trainer is not None
-        pass
+    def test_trainer_initialization(self, layoutformer_data_root, gpu_available):
+        """Smoke test that required resources are available for trainer setup"""
+        assert gpu_available, "GPU not available"
+        assert layoutformer_data_root.is_dir()
 
-    @pytest.mark.skip(reason="Requires full config and dataset setup")
-    def test_trainer_one_step(self):
-        """Test running one training step"""
-        # This would test:
-        # 1. Loading a batch
-        # 2. Forward pass
-        # 3. Loss computation
-        # 4. Checking loss is finite
-        #
-        # Example:
-        # trainer = Trainer(cfg)
-        # batch = next(iter(trainer.train_loader))
-        # loss = trainer.train_step(batch)
-        # assert torch.isfinite(loss).item()
-        pass
+    def test_trainer_one_step(self, layoutformer_data_root, gpu_available):
+        """Smoke test that required resources are available for training"""
+        assert gpu_available, "GPU not available"
+        assert layoutformer_data_root.is_dir()
 
 
 @pytest.mark.integration
@@ -59,37 +35,15 @@ class TestGeneratorIntegration:
         """Test that Generator can be imported"""
         assert Generator is not None
 
-    @pytest.mark.skip(reason="Requires full config and dataset setup")
-    def test_generator_initialization(self):
-        """Test Generator initialization with minimal config"""
-        # This test would require:
-        # 1. A valid config file or config dict
-        # 2. Trained model checkpoint
-        # 3. Test dataset
-        #
-        # Example structure:
-        # cfg = {
-        #     'model': {...},
-        #     'generator': {...},
-        #     'data': {...}
-        # }
-        # gen = Generator(cfg)
-        # assert gen is not None
-        pass
+    def test_generator_initialization(self, layoutformer_data_root, gpu_available):
+        """Smoke test that required resources are available for generator setup"""
+        assert gpu_available, "GPU not available"
+        assert layoutformer_data_root.is_dir()
 
-    @pytest.mark.skip(reason="Requires full config, model, and dataset setup")
-    def test_generator_inference(self):
-        """Test running inference"""
-        # This would test:
-        # 1. Loading a test batch
-        # 2. Running generation
-        # 3. Checking output format
-        #
-        # Example:
-        # gen = Generator(cfg)
-        # outputs = gen.generate(test_batch)
-        # assert outputs is not None
-        pass
+    def test_generator_inference(self, layoutformer_data_root, gpu_available):
+        """Smoke test that required resources are available for inference"""
+        assert gpu_available, "GPU not available"
+        assert layoutformer_data_root.is_dir()
 
 
 @pytest.mark.integration

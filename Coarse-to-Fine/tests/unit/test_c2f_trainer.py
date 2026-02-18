@@ -109,8 +109,7 @@ class TestLinearFunction:
 @pytest.mark.gpu
 @pytest.mark.unit
 def test_trainer_ddp_single_gpu(gpu_available, ddp_env):
-    if not gpu_available:
-        pytest.skip("GPU not available")
+    assert gpu_available, "GPU not available"
 
     if dist.is_initialized():
         dist.destroy_process_group()

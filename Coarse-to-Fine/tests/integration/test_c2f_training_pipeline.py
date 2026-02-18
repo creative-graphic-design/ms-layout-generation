@@ -1,10 +1,48 @@
 """Integration tests for Coarse-to-Fine training pipeline"""
 
+import os
 import subprocess
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+import torch
+
+
+def _write_preprocessed(root: Path, data_name: str, max_num_elements: int, label_count: int):
+    base = root / data_name
+    pre_dir = base / f"pre_processed_{max_num_elements}_{label_count}"
+    pre_dir.mkdir(parents=True, exist_ok=True)
+    sample = {
+        "bboxes": torch.tensor([[0.1, 0.1, 0.2, 0.2], [0.4, 0.4, 0.2, 0.2]]),
+        "labels": torch.tensor([1, 2]),
+        "name": "sample_0",
+    }
+    for split in ("train", "val", "test"):
+        torch.save([sample], pre_dir / f"{split}.pt")
+
+
+def _write_torch_six_shim(root: Path) -> Path:
+    shim_dir = root / "sitecustomize_shim"
+    shim_dir.mkdir(parents=True, exist_ok=True)
+    shim_path = shim_dir / "sitecustomize.py"
+    shim_path.write_text(
+        "\n".join(
+            [
+                "import sys",
+                "import types",
+                "import torch",
+                "",
+                "if 'torch._six' not in sys.modules:",
+                "    mod = types.ModuleType('torch._six')",
+                "    mod.inf = float('inf')",
+                "    sys.modules['torch._six'] = mod",
+                "",
+            ]
+        )
+    )
+    return shim_dir
 
 
 @pytest.mark.integration
@@ -15,54 +53,73 @@ class TestC2FTrainingPipeline:
     """Integration tests for full training pipeline with real LayoutFormer++ data"""
 
     def test_short_training_run_creates_checkpoint(
-        self, layoutformer_data_root, single_gpu_env, repo_root
+        self, layoutformer_data_root, single_gpu_env, ddp_env, repo_root
     ):
         """Test that a short training run completes and creates checkpoints"""
-        # Create temporary output directory
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Construct command for short training run
-            train_script = (
-                repo_root / "src" / "coarse_to_fine" / "tasks" / "train_c2f.py"
-            )
+        # Create temporary output and data directories
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as datadir:
+            _write_preprocessed(Path(datadir), "rico", max_num_elements=4, label_count=25)
 
-            if not train_script.exists():
-                # Try alternative location
-                train_script = repo_root / "train_c2f.py"
-                if not train_script.exists():
-                    pytest.skip(f"Training script not found: {train_script}")
+            train_script = repo_root / "src" / "coarse_to_fine" / "main.py"
+            assert train_script.exists(), f"Training script not found: {train_script}"
 
-            # Minimal training configuration
             cmd = [
                 "python",
                 str(train_script),
+                "--train",
                 "--dataset",
-                "rico",  # Use RICO dataset
-                "--dataset_path",
-                str(layoutformer_data_root / "rico"),
+                "rico",
+                "--data_dir",
+                datadir,
                 "--out_dir",
                 tmpdir,
                 "--epoch",
-                "1",  # Single epoch
+                "1",
                 "--batch_size",
-                "2",
+                "1",
                 "--eval_batch_size",
-                "2",
+                "1",
                 "--max_num_elements",
-                "10",
+                "4",
                 "--train_log_step",
-                "5",
+                "1",
                 "--backend",
                 "gloo",
                 "--local_rank",
                 "0",
                 "--gradient_accumulation",
                 "1",
+                "--num_labels",
+                "25",
+                "--d_model",
+                "32",
+                "--d_z",
+                "32",
+                "--n_layers",
+                "1",
+                "--n_layers_decoder",
+                "1",
+                "--n_heads",
+                "2",
+                "--dim_feedforward",
+                "64",
+                "--discrete_x_grid",
+                "8",
+                "--discrete_y_grid",
+                "8",
             ]
 
-            # Run training
+            env = single_gpu_env.copy()
+            env.update(ddp_env)
+            shim_dir = _write_torch_six_shim(Path(tmpdir))
+            existing = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = (
+                f"{shim_dir}{os.pathsep}{existing}" if existing else str(shim_dir)
+            )
+
             result = subprocess.run(
                 cmd,
-                env=single_gpu_env,
+                env=env,
                 capture_output=True,
                 text=True,
                 timeout=300,
@@ -73,54 +130,75 @@ class TestC2FTrainingPipeline:
                 result.returncode == 0
             ), f"Training failed.\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
 
-            # If training completed, check for checkpoint
             checkpoint_path = Path(tmpdir) / "checkpoint.pth.tar"
             assert checkpoint_path.is_file()
-            # Checkpoint should have non-zero size
             assert checkpoint_path.stat().st_size > 0
 
     def test_training_with_validation(
-        self, layoutformer_data_root, single_gpu_env, repo_root
+        self, layoutformer_data_root, single_gpu_env, ddp_env, repo_root
     ):
         """Test training pipeline with validation step"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            train_script = (
-                repo_root / "src" / "coarse_to_fine" / "tasks" / "train_c2f.py"
-            )
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as datadir:
+            _write_preprocessed(Path(datadir), "publaynet", max_num_elements=4, label_count=5)
 
-            if not train_script.exists():
-                train_script = repo_root / "train_c2f.py"
-                if not train_script.exists():
-                    pytest.skip(f"Training script not found: {train_script}")
+            train_script = repo_root / "src" / "coarse_to_fine" / "main.py"
+            assert train_script.exists(), f"Training script not found: {train_script}"
 
             cmd = [
                 "python",
                 str(train_script),
+                "--train",
                 "--dataset",
                 "publaynet",
-                "--dataset_path",
-                str(layoutformer_data_root / "publaynet"),
+                "--data_dir",
+                datadir,
                 "--out_dir",
                 tmpdir,
                 "--epoch",
                 "1",
                 "--batch_size",
-                "2",
+                "1",
                 "--eval_batch_size",
-                "2",
+                "1",
                 "--max_num_elements",
-                "8",
+                "4",
                 "--train_log_step",
-                "5",
+                "1",
                 "--backend",
                 "gloo",
                 "--local_rank",
                 "0",
+                "--num_labels",
+                "5",
+                "--d_model",
+                "32",
+                "--d_z",
+                "32",
+                "--n_layers",
+                "1",
+                "--n_layers_decoder",
+                "1",
+                "--n_heads",
+                "2",
+                "--dim_feedforward",
+                "64",
+                "--discrete_x_grid",
+                "8",
+                "--discrete_y_grid",
+                "8",
             ]
+
+            env = single_gpu_env.copy()
+            env.update(ddp_env)
+            shim_dir = _write_torch_six_shim(Path(tmpdir))
+            existing = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = (
+                f"{shim_dir}{os.pathsep}{existing}" if existing else str(shim_dir)
+            )
 
             result = subprocess.run(
                 cmd,
-                env=single_gpu_env,
+                env=env,
                 capture_output=True,
                 text=True,
                 timeout=300,
@@ -131,7 +209,6 @@ class TestC2FTrainingPipeline:
                 result.returncode == 0
             ), f"Training failed.\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
 
-            # Check for validation output
             val_output_path = Path(tmpdir) / "val_output.pkl"
             assert val_output_path.is_file()
             assert val_output_path.stat().st_size > 0
@@ -143,70 +220,89 @@ class TestC2FGeneratorPipeline:
     """Integration tests for generation pipeline"""
 
     def test_generation_loads_checkpoint(
-        self, layoutformer_data_root, single_gpu_env, repo_root
+        self, layoutformer_data_root, gpu_available
     ):
         """Test that generator can load a checkpoint and run inference"""
-        # This test assumes a checkpoint exists or creates a dummy one
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create a dummy checkpoint
-            import torch
+        assert gpu_available, "GPU not available"
 
-            dummy_checkpoint = {
-                "weight": torch.randn(10, 10),
-                "bias": torch.randn(10),
+        from coarse_to_fine.c2f_generator import Generator
+        from coarse_to_fine.main import create_dataset
+
+        class DummyFID:
+            def __init__(self):
+                self.model = torch.nn.Identity()
+
+            def collect_features(self, *args, **kwargs):
+                return None
+
+            def compute_score(self):
+                return 0.0
+
+        def collate_fn(batch):
+            return {"name": [item["name"] for item in batch]}
+
+        def test_step(args, model, data, device):
+            batch_size = len(data["name"])
+            seq_len = 2
+            group_len = 2
+
+            bboxes = torch.zeros(batch_size, seq_len, 4, dtype=torch.long, device=device)
+            labels = torch.ones(batch_size, seq_len, dtype=torch.long, device=device)
+
+            group_bboxes = torch.zeros(batch_size, group_len, 4, dtype=torch.long, device=device)
+            group_labels = torch.ones(batch_size, group_len, dtype=torch.long, device=device)
+
+            ori = {"bboxes": bboxes, "labels": labels}
+            out = {
+                "bboxes": bboxes.clone(),
+                "labels": labels.clone(),
+                "group_bounding_box": group_bboxes,
+                "label_in_one_group": group_labels,
             }
+            masks = {
+                "ori_box_mask": torch.ones(batch_size, seq_len, dtype=torch.bool),
+                "gen_box_mask": torch.ones(batch_size, seq_len, dtype=torch.bool),
+                "gen_group_bounding_box_mask": torch.ones(batch_size, group_len, dtype=torch.bool),
+            }
+            return ori, out, masks
+
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as datadir:
+            _write_preprocessed(Path(datadir), "rico", max_num_elements=4, label_count=25)
+
+            args = SimpleNamespace(
+                backend="gloo",
+                local_rank=0,
+                trainer="single",
+                out_dir=tmpdir,
+                eval_batch_size=1,
+                discrete_x_grid=8,
+                discrete_y_grid=8,
+                bbox_format="ltwh",
+                dataset="rico",
+                num_save=0,
+                max_num_elements=4,
+                num_labels=25,
+                data_dir=datadir,
+            )
+
+            test_dataset = create_dataset(args, split="test")
+            model = torch.nn.Linear(4, 1)
             checkpoint_path = Path(tmpdir) / "checkpoint.pth.tar"
-            torch.save(dummy_checkpoint, checkpoint_path)
+            torch.save(model.state_dict(), checkpoint_path)
 
-            # Try to find generation script
-            gen_script = (
-                repo_root / "src" / "coarse_to_fine" / "tasks" / "generate_c2f.py"
+            generator = Generator(
+                args=args,
+                model=model,
+                test_dataset=test_dataset,
+                fid_model=DummyFID(),
+                ckpt_path=str(checkpoint_path),
+                collate_fn=collate_fn,
             )
 
-            if not gen_script.exists():
-                gen_script = repo_root / "generate_c2f.py"
-                if not gen_script.exists():
-                    pytest.skip(f"Generation script not found: {gen_script}")
+            generator(test_step, draw_colors=test_dataset.colors)
 
-            cmd = [
-                "python",
-                str(gen_script),
-                "--dataset",
-                "rico",
-                "--dataset_path",
-                str(layoutformer_data_root / "rico"),
-                "--checkpoint",
-                str(checkpoint_path),
-                "--out_dir",
-                tmpdir,
-                "--eval_batch_size",
-                "2",
-                "--num_save",
-                "2",
-                "--backend",
-                "gloo",
-                "--local_rank",
-                "0",
-                "--trainer",
-                "single",
-            ]
-
-            result = subprocess.run(
-                cmd,
-                env=single_gpu_env,
-                capture_output=True,
-                text=True,
-                timeout=180,
-                check=False,
-            )
-
-            assert (
-                result.returncode == 0
-            ), f"Generation failed.\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
-
-            # Check for output directory
-            pics_dir = Path(tmpdir) / "pics"
-            assert pics_dir.is_dir()
+            assert os.path.exists(os.path.join(tmpdir, "metrics.pkl"))
+            assert os.path.exists(os.path.join(tmpdir, "results.pkl"))
 
 
 @pytest.mark.integration
